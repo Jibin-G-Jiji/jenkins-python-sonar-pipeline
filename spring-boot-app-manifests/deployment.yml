@@ -21,7 +21,7 @@ spec:
           command: ["python", "manage.py", "migrate"]
           env:
             - name: DJANGO_SETTINGS_MODULE
-              value: "django_todo.settings"
+              value: "config.settings"
             - name: ALLOWED_HOSTS
               value: "*"
       containers:
@@ -31,7 +31,7 @@ spec:
             - containerPort: 8080
           env:
             - name: DJANGO_SETTINGS_MODULE
-              value: "django_todo.settings"
+              value: "config.settings"
             - name: ALLOWED_HOSTS
               value: "*"
           resources:
