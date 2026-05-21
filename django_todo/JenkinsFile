@@ -55,9 +55,17 @@ pipeline {
   steps {
     withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
       sh '''
-        pip install pysonar-scanner --quiet 2>/dev/null || true
+        # Install Java (sonar-scanner needs it)
+        apt-get update -qq && apt-get install -y -qq default-jre curl unzip
 
-        PYTHONPATH=/var/lib/jenkins/workspace/jenkins-python-sonar-pipeline/django_todo \
+        # Download sonar-scanner CLI
+        curl -sSLo /tmp/sonar-scanner.zip \
+          https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+
+        unzip -qq /tmp/sonar-scanner.zip -d /opt/
+        export PATH="/opt/sonar-scanner-5.0.1.3006-linux/bin:$PATH"
+
+        # Run analysis
         sonar-scanner \
           -Dsonar.projectKey=python-todo-app \
           -Dsonar.sources=django_todo/todos \
