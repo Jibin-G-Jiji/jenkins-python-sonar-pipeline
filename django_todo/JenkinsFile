@@ -48,25 +48,26 @@ pipeline {
 }
 
     stage('Static Code Analysis') {
-      environment {
-        SONAR_URL = "http://3.24.242.14:9000/"
-      }
-      steps {
-        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh '''
-            docker run --rm \
-              -e SONAR_HOST_URL=${SONAR_URL} \
-              -e SONAR_LOGIN=${SONAR_AUTH_TOKEN} \
-              -v $(pwd):/usr/src \
-              sonarsource/sonar-scanner-cli \
-              -Dsonar.projectKey=python-todo-app \
-              -Dsonar.sources=todos \
-              -Dsonar.python.coverage.reportPaths=coverage.xml \
-              -Dsonar.python.version=3.11
-          '''
-        }
-      }
+  environment {
+    SONAR_URL = "http://3.24.242.14:9000"
+  }
+  steps {
+    withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+      sh '''
+        pip install pysonar-scanner --quiet 2>/dev/null || true
+
+        PYTHONPATH=/var/lib/jenkins/workspace/jenkins-python-sonar-pipeline/django_todo \
+        sonar-scanner \
+          -Dsonar.projectKey=python-todo-app \
+          -Dsonar.sources=django_todo/todos \
+          -Dsonar.host.url=${SONAR_URL} \
+          -Dsonar.login=${SONAR_AUTH_TOKEN} \
+          -Dsonar.python.coverage.reportPaths=django_todo/coverage.xml \
+          -Dsonar.python.version=3.11
+      '''
     }
+  }
+}
 
     stage('Build and Push Docker Image') {
   environment {
