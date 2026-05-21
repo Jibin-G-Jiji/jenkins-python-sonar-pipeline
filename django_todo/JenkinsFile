@@ -98,17 +98,17 @@ pipeline {
     }
 
     stage('Build and Push Docker Image') {
-      agent any                        // ← runs on Jenkins host, NOT inside container
-      steps {
-        script {
-          docker.build("${DOCKER_IMAGE}", "django_todo/")
-          docker.withRegistry('https://index.docker.io/v1/', 'docker-cred') {
-            docker.image("${DOCKER_IMAGE}").push()
-            docker.image("${DOCKER_IMAGE}").push('latest')
-          }
-        }
+  agent any
+  steps {
+    script {
+      docker.build("${DOCKER_IMAGE}", "-f django_todo/DockerFile django_todo/")
+      docker.withRegistry('https://index.docker.io/v1/', 'docker-cred') {
+        docker.image("${DOCKER_IMAGE}").push()
+        docker.image("${DOCKER_IMAGE}").push('latest')
       }
     }
+  }
+}
 
     stage('Update Deployment File') {
       agent any                        // ← runs on Jenkins host
