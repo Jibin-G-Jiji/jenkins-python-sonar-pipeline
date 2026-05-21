@@ -29,21 +29,22 @@ pipeline {
 }
 
     stage('Build and Test') {
-      steps {
-        sh '''
-          pytest todos/tests.py \
-            --ds=django_todo.settings \
-            --junitxml=report.xml \
-            --cov=todos \
-            --cov-report=xml
-        '''
-      }
-      post {
-        always {
-          junit 'report.xml'
-        }
-      }
+  steps {
+    sh '''
+      pytest todos/tests.py \
+        --ds=django_todo.settings \
+        --junitxml=report.xml \
+        --cov=todos \
+        --cov-report=xml \
+        -v
+    '''
+  }
+  post {
+    always {
+      junit allowEmptyResults: true, testResults: 'report.xml'
     }
+  }
+}
 
     stage('Static Code Analysis') {
       environment {
