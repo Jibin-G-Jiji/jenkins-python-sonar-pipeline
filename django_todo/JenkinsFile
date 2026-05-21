@@ -1,10 +1,5 @@
 pipeline {
-  agent {
-    docker {
-      image 'python:3.11-slim'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
-    }
-  }
+  agent none
 
   environment {
     DOCKER_IMAGE = "jibin321/ultimate-cicd:${BUILD_NUMBER}"
@@ -13,12 +8,24 @@ pipeline {
   stages {
 
     stage('Checkout') {
+      agent {
+        docker {
+          image 'python:3.11-slim'
+          args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+      }
       steps {
         sh 'echo Checkout passed'
       }
     }
 
     stage('Install Dependencies') {
+      agent {
+        docker {
+          image 'python:3.11-slim'
+          args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+      }
       steps {
         sh '''
           pip install --upgrade pip
@@ -29,8 +36,18 @@ pipeline {
     }
 
     stage('Build and Test') {
+      agent {
+        docker {
+          image 'python:3.11-slim'
+          args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+      }
       steps {
         sh '''
+          pip install --upgrade pip
+          pip install django==5.2.4 gunicorn==21.2.0 whitenoise==6.6.0 \
+                      pytest pytest-django pytest-cov
+
           PYTHONPATH=/var/lib/jenkins/workspace/jenkins-python-sonar-pipeline/django_todo \
           pytest django_todo/todos/tests.py \
             --ds=config.settings \
@@ -48,6 +65,12 @@ pipeline {
     }
 
     stage('Static Code Analysis') {
+      agent {
+        docker {
+          image 'python:3.11-slim'
+          args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+      }
       environment {
         SONAR_URL = "http://3.24.242.14:9000"
       }
@@ -75,6 +98,7 @@ pipeline {
     }
 
     stage('Build and Push Docker Image') {
+      agent any                        // ← runs on Jenkins host, NOT inside container
       steps {
         script {
           docker.build("${DOCKER_IMAGE}", "django_todo/")
@@ -87,6 +111,7 @@ pipeline {
     }
 
     stage('Update Deployment File') {
+      agent any                        // ← runs on Jenkins host
       environment {
         GIT_REPO_NAME = "jenkins-python-sonar-pipeline"
         GIT_USER_NAME = "Jibin-G-Jiji"
@@ -111,7 +136,9 @@ pipeline {
 
   post {
     always {
-      cleanWs()
+      node('built-in') {
+        cleanWs()
+      }
     }
     failure {
       echo 'Pipeline failed! Check logs above.'
