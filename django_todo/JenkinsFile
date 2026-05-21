@@ -32,7 +32,7 @@ pipeline {
   steps {
     sh '''
       cd django_todo
-      pytest todos/tests.py \
+      PYTHONPATH=$(pwd)/.. pytest todos/tests.py \
         --ds=django_todo.settings \
         --junitxml=report.xml \
         --cov=todos \
