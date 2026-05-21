@@ -31,17 +31,11 @@ pipeline {
     stage('Build and Test') {
   steps {
     sh '''
-      echo "=== Workspace structure ==="
-      find django_todo -name "settings.py"
-      echo "=== pytest.ini content ==="
-      cat django_todo/pytest.ini
-      echo "=== Running tests ==="
-      cd django_todo
-      PYTHONPATH=/var/lib/jenkins/workspace/jenkins-python-sonar-pipeline \
-      pytest todos/tests.py \
-        --ds=django_todo.settings \
-        --junitxml=report.xml \
-        --cov=todos \
+      PYTHONPATH=/var/lib/jenkins/workspace/jenkins-python-sonar-pipeline/django_todo \
+      pytest django_todo/todos/tests.py \
+        --ds=config.settings \
+        --junitxml=django_todo/report.xml \
+        --cov=django_todo/todos \
         --cov-report=xml \
         -v
     '''
