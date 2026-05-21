@@ -93,26 +93,25 @@ pipeline {
 }
 
     stage('Update Deployment File') {
-      environment {
-        GIT_REPO_NAME = "jenkins-python-sonar-pipeline"
-        GIT_USER_NAME = "Jibin-G-Jiji"
-      }
-      steps {
-        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-          sh '''
-            git config --global --add safe.directory ${WORKSPACE}
-            git config user.email "jibingjiji2003@gmail.com"
-            git config user.name "Jibin-G-Jiji"
-            sed -i "s|image: jibin321/ultimate-cicd:.*|image: jibin321/ultimate-cicd:${BUILD_NUMBER}|g" \
-              spring-boot-app-manifests/deployment.yml
-            git add spring-boot-app-manifests/deployment.yml
-            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-          '''
-        }
-      }
+  environment {
+    GIT_REPO_NAME = "jenkins-python-sonar-pipeline"
+    GIT_USER_NAME = "Jibin-G-Jiji"
+  }
+  steps {
+    withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+      sh '''
+        git config --global --add safe.directory ${WORKSPACE}
+        git config user.email "jibingjiji2003@gmail.com"
+        git config user.name "Jibin-G-Jiji"
+        sed -i "s|image: jibin321/ultimate-cicd:.*|image: jibin321/ultimate-cicd:${BUILD_NUMBER}|g" \
+          spring-boot-app-manifests/deployment.yml
+        git add spring-boot-app-manifests/deployment.yml
+        git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+      '''
     }
   }
+}
 
   post {
     always {
