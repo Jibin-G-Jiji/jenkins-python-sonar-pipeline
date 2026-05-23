@@ -1,0 +1,118 @@
+pipeline {
+  agent {
+    docker {
+      image 'python:3.11-slim'
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+    }
+  }
+
+  environment {
+    DOCKER_IMAGE = "jibin321/ultimate-cicd:${BUILD_NUMBER}"
+  }
+
+  stages {
+
+    stage('Checkout') {
+      steps {
+        sh 'echo Checkout passed'
+      }
+    }
+
+    stage('Install Dependencies') {
+      steps {
+        sh '''
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-django pytest-cov
+        '''
+      }
+    }
+
+    stage('Build and Test') {
+      steps {
+        sh '''
+          pytest todos/tests.py \
+            --ds=django_todo.settings \
+            --junitxml=report.xml \
+            --cov=todos \
+            --cov-report=xml
+        '''
+      }
+      post {
+        always {
+          junit 'report.xml'
+        }
+      }
+    }
+
+    stage('Static Code Analysis') {
+      environment {
+        SONAR_URL = "http://3.24.242.14:9000/"
+      }
+      steps {
+        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+          sh '''
+            docker run --rm \
+              -e SONAR_HOST_URL=${SONAR_URL} \
+              -e SONAR_LOGIN=${SONAR_AUTH_TOKEN} \
+              -v $(pwd):/usr/src \
+              sonarsource/sonar-scanner-cli \
+              -Dsonar.projectKey=python-todo-app \
+              -Dsonar.sources=todos \
+              -Dsonar.python.coverage.reportPaths=coverage.xml \
+              -Dsonar.python.version=3.11
+          '''
+        }
+      }
+    }
+
+    stage('Build and Push Docker Image') {
+      environment {
+        REGISTRY_CREDENTIALS = credentials('docker-cred')
+      }
+      steps {
+        script {
+          sh 'docker build -t ${DOCKER_IMAGE} .'
+          def dockerImage = docker.image("${DOCKER_IMAGE}")
+          docker.withRegistry('https://index.docker.io/v1/', "docker-cred") {
+            dockerImage.push()
+            dockerImage.push("latest")
+          }
+        }
+      }
+    }
+
+    stage('Update Deployment File') {
+      environment {
+        GIT_REPO_NAME = "jenkins-python-sonar-pipeline"
+        GIT_USER_NAME = "Jibin-G-Jiji"
+      }
+      steps {
+        withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+          sh '''
+            git config --global --add safe.directory ${WORKSPACE}
+            git config user.email "jibingjiji2003@gmail.com"
+            git config user.name "Jibin-G-Jiji"
+            sed -i "s|image: jibin321/ultimate-cicd:.*|image: jibin321/ultimate-cicd:${BUILD_NUMBER}|g" \
+              spring-boot-app-manifests/deployment.yml
+            git add spring-boot-app-manifests/deployment.yml
+            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      cleanWs()
+    }
+    failure {
+      echo 'Pipeline failed! Check logs above.'
+    }
+    success {
+      echo "Successfully deployed version ${BUILD_NUMBER}"
+    }
+  }
+}
