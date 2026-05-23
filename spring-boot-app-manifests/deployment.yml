@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-app
+  namespace: default
+  labels:
+    app: python-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python-app
+  template:
+    metadata:
+      labels:
+        app: python-app
+    spec:
+      initContainers:
+        - name: django-migrate
+          image: jibin321/ultimate-cicd:15
+          command: ["python", "manage.py", "migrate"]
+          env:
+            - name: DJANGO_SETTINGS_MODULE
+              value: "config.settings"
+            - name: ALLOWED_HOSTS
+              value: "*"
+      containers:
+        - name: python-app
+          image: jibin321/ultimate-cicd:15
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DJANGO_SETTINGS_MODULE
+              value: "config.settings"
+            - name: ALLOWED_HOSTS
+              value: "*"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
